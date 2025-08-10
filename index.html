@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>מחלק הוצאות קמפינג</title>
+<style>
+  :root {
+    --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --accent:#22c55e;
+    --accent-2:#60a5fa; --text:#e5e7eb; --danger:#ef4444; --warn:#f59e0b;
+    --border:#1f2937;
+  }
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+  h1{font-size:1.6rem;margin:0 0 12px}
+  .grid{display:grid;gap:16px}
+  @media(min-width:900px){.grid{grid-template-columns: 1.1fr 1.3fr}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px}
+  .section-title{font-weight:700;margin-bottom:8px}
+  label{font-size:.92rem;color:var(--muted)}
+  input,select,button,textarea{
+    background:#0b1220;color:var(--text);border:1px solid var(--border);
+    border-radius:10px;padding:10px 12px;font-size:1rem;outline:none
+  }
+  input:focus,textarea:focus,button:focus{border-color:#334155}
+  .inline{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+  .inline .field{display:flex;flex-direction:column}
+  .btn{cursor:pointer;border:none}
+  .btn-primary{background:var(--accent);color:#08210f;font-weight:700}
+  .btn-secondary{background:#0b1220}
+  .btn-danger{background:var(--danger)}
+  .btn-small{padding:6px 10px;font-size:.9rem;border-radius:8px}
+  .btn-ghost{background:transparent;border:1px dashed #334155}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{padding:10px;border-bottom:1px solid #1f2937;text-align:center}
+  th{color:#cbd5e1}
+  .muted{color:var(--muted)}
+  .pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.85rem}
+  .pill-ok{background:#052e1b;color:#86efac}
+  .pill-bad{background:#2b0b0b;color:#fca5a5}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .right{display:flex;justify-content:flex-end}
+  .footer{margin-top:8px;font-size:.9rem;color:var(--muted)}
+  .totals{display:flex;gap:14px;flex-wrap:wrap}
+  .totals div{background:#0b1220;border:1px solid var(--border);padding:8px 10px;border-radius:8px}
+  .badge{background:#0b1220;border:1px solid #334155;border-radius:8px;padding:4px 8px;color:#bfdbfe}
+  .copy{background:var(--accent-2);color:#071423;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏕️ מחלק הוצאות קמפינג / טיולים</h1>
+
+  <div class="grid">
+    <!-- Left: Inputs -->
+    <div class="card">
+      <div class="section-title">⚖️ משקלים</div>
+      <div class="inline">
+        <div class="field">
+          <label>מבוגר</label>
+          <input type="number" id="wAdult" value="1" step="0.01" />
+        </div>
+        <div class="field">
+          <label>ילד</label>
+          <input type="number" id="wKid" value="0.5" step="0.01" />
+        </div>
+        <div class="field">
+          <label>תינוק</label>
+          <input type="number" id="wBaby" value="0" step="0.01" />
+        </div>
+        <div class="field">
+          <label class="muted">מטבע</label>
+          <select id="currency">
+            <option value="₪" selected>₪</option>
+            <option>$</option><option>€</option><option>£</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:16px">👨‍👩‍👧‍👦 משפחות</div>
+      <div id="families"></div>
+      <div class="row">
+        <button class="btn btn-ghost btn-small" id="addFamily">+ הוסף משפחה</button>
+        <button class="btn btn-danger btn-small" id="clearAll">איפוס הכול</button>
+      </div>
+
+      <div class="section-title" style="margin-top:16px">🧾 הוצאות</div>
+      <div class="inline">
+        <div class="field" style="min-width:190px">
+          <label>סה״כ הוצאות</label>
+          <input type="number" id="total" value="0" step="0.01" />
+        </div>
+        <div class="field">
+          <label class="muted">עיגול לתשלום</label>
+          <select id="rounding">
+            <option value="0.01">אגורות (0.01)</option>
+            <option value="1">שלמות (1)</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="right" style="margin-top:16px">
+        <button class="btn btn-primary" id="calc">חשב</button>
+      </div>
+      <div class="footer">טיפ: הזן גם כמה כל משפחה כבר שילמה — האלגוריתם יבנה עבורך תוכנית החזר מינימלית.</div>
+    </div>
+
+    <!-- Right: Results -->
+    <div class="card">
+      <div class="section-title">📊 תוצאות</div>
+      <div class="totals" id="metaTotals"></div>
+
+      <table id="resultTable" style="display:none">
+        <thead>
+          <tr>
+            <th>משפחה</th><th>יח׳ משקל</th><th>חלק (₪)</th>
+            <th>שילמו בפועל</th><th>יתרה</th><th>סטטוס</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div id="settlementsWrap" style="display:none; margin-top:16px">
+        <div class="section-title">🤝 תכנית הסדר מינימלית</div>
+        <ul id="settlements"></ul>
+      </div>
+
+      <div class="row right" style="margin-top:12px">
+        <button class="btn copy" id="copyHe">📋 העתק סיכום לוואטסאפ (עברית)</button>
+        <button class="btn btn-secondary" id="copyEn">📋 Copy summary (English)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- Helpers
+  const el = id => document.getElementById(id);
+  const roundTo = (v, step) => Math.round(v / step) * step;
+  const fmt = (x, curr) => (Number(x).toFixed(2)).replace(/\.00$/,'') + ' ' + curr;
+
+  // --- Family row template
+  function familyRow(name='', adults=0, kids=0, babies=0, paid=0){
+    const id = 'f' + Math.random().toString(36).slice(2,8);
+    const div = document.createElement('div');
+    div.className = 'inline';
+    div.style.marginBottom = '8px';
+    div.dataset.rowId = id;
+    div.innerHTML = `
+      <div class="field"><label>שם משפחה</label>
+        <input type="text" class="f-name" value="${name}"/></div>
+      <div class="field"><label>מבוגרים</label>
+        <input type="number" class="f-adults" min="0" step="1" value="${adults}"/></div>
+      <div class="field"><label>ילדים</label>
+        <input type="number" class="f-kids" min="0" step="1" value="${kids}"/></div>
+      <div class="field"><label>תינוקות</label>
+        <input type="number" class="f-babies" min="0" step="1" value="${babies}"/></div>
+      <div class="field"><label>שילמו בפועל</label>
+        <input type="number" class="f-paid" min="0" step="0.01" value="${paid}"/></div>
+      <button class="btn btn-small btn-danger" title="מחק">מחק</button>
+    `;
+    div.querySelector('button').onclick = () => div.remove();
+    return div;
+  }
+
+  // --- Manage families
+  const container = el('families');
+  el('addFamily').onclick = () => container.appendChild(familyRow());
+  el('clearAll').onclick = () => { container.innerHTML=''; el('resultTable').style.display='none'; el('settlementsWrap').style.display='none'; el('metaTotals').innerHTML=''; };
+
+  // Seed with an example (you can remove these lines)
+  const seed = [
+    ['סמוחה',5,1,1,0],
+    ['פרי',2,2,1,0],
+    ['ידין',3,3,0,0],
+    ['שגב',3,3,0,0],
+    ['שהדאד',4,1,0,0],
+    ['וטורי',2,2,1,0],
+  ];
+  seed.forEach(s=>container.appendChild(familyRow(...s)));
+
+  // --- Calculation
+  el('calc').onclick = () => {
+    const wA = parseFloat(el('wAdult').value)||0, wK=parseFloat(el('wKid').value)||0, wB=parseFloat(el('wBaby').value)||0;
+    const total = parseFloat(el('total').value)||0;
+    const curr = el('currency').value;
+    const rnd = parseFloat(el('rounding').value)||0.01;
+
+    const rows=[...container.children].map(div=>{
+      return {
+        name: div.querySelector('.f-name').value.trim() || '—',
+        adults: parseInt(div.querySelector('.f-adults').value)||0,
+        kids: parseInt(div.querySelector('.f-kids').value)||0,
+        babies: parseInt(div.querySelector('.f-babies').value)||0,
+        paid: parseFloat(div.querySelector('.f-paid').value)||0
+      }
+    });
+
+    if(rows.length===0){ alert('הוסף לפחות משפחה אחת.'); return; }
+    if(total<=0){ alert('הזן סה״כ הוצאות גדול מאפס.'); return; }
+
+    // Weighted units
+    rows.forEach(r=>{
+      r.units = r.adults*wA + r.kids*wK + r.babies*wB;
+    });
+    const totalUnits = rows.reduce((s,r)=>s+r.units,0);
+    if(totalUnits<=0){ alert('סך יחידות המשקל הוא 0. בדוק את המשקלים ואת הנתונים.'); return; }
+
+    // Share per unit and per family
+    const costPerUnit = total / totalUnits;
+    rows.forEach(r=>{
+      r.shareRaw = r.units * costPerUnit;
+    });
+
+    // Rounding with adjustment to match total exactly
+    let roundedShares = rows.map(r => roundTo(r.shareRaw, rnd));
+    // Adjust drift so sum(rounded)=total (greedy on largest fractional parts)
+    let drift = Math.round((total - roundedShares.reduce((s,x)=>s+x,0)) / rnd);
+    if(drift !== 0){
+      const parts = rows.map((r,i)=>({i, frac: r.shareRaw/rnd - Math.floor(r.shareRaw/rnd)}));
+      parts.sort((a,b)=>drift>0? b.frac-a.frac : a.frac-b.frac);
+      let k=0; while(drift!==0 && k<parts.length*3){
+        const idx = parts[k%parts.length].i;
+        roundedShares[idx] += rnd * Math.sign(drift);
+        drift -= Math.sign(drift);
+        k++;
+      }
+    }
+    rows.forEach((r,i)=> r.share = Number(roundedShares[i].toFixed(2)));
+
+    // Net
+    rows.forEach(r=>{
+      r.net = Number((r.paid - r.share).toFixed(2)); // + means should receive, - means should pay
+    });
+
+    // Render meta
+    el('metaTotals').innerHTML = `
+      <div>סה״כ יחידות: <span class="badge">${Number(totalUnits.toFixed(2))}</span></div>
+      <div>מחיר ליחידה: <span class="badge">${fmt(costPerUnit, curr)}</span></div>
+      <div>שולם בפועל: <span class="badge">${fmt(rows.reduce((s,r)=>s+r.paid,0), curr)}</span></div>
+      <div>סה״כ הוצאות: <span class="badge">${fmt(total, curr)}</span></div>
+    `;
+
+    // Render table
+    const tb = el('resultTable').querySelector('tbody');
+    tb.innerHTML = '';
+    rows.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.name}</td>
+        <td>${r.units.toFixed(2)}</td>
+        <td>${r.share.toFixed(2)}</td>
+        <td>${(r.paid||0).toFixed(2)}</td>
+        <td>${(r.net>0? '+' : '') + r.net.toFixed(2)}</td>
+        <td>${r.net>=0 ? '<span class="pill pill-ok">מגיע לקבל</span>' : '<span class="pill pill-bad">צריך לשלם</span>'}</td>
+      `;
+      tb.appendChild(tr);
+    });
+    el('resultTable').style.display='table';
+
+    // Settlements (minimal via greedy)
+    const creditors = rows.filter(r=>r.net>0).map(r=>({name:r.name, amt: +r.net.toFixed(2)}));
+    const debtors = rows.filter(r=>r.net<0).map(r=>({name:r.name, amt: +(-r.net).toFixed(2)}));
+    creditors.sort((a,b)=>b.amt-a.amt);
+    debtors.sort((a,b)=>b.amt-a.amt);
+
+    const moves=[];
+    let i=0,j=0;
+    while(i<debtors.length && j<creditors.length){
+      const pay = Math.min(debtors[i].amt, creditors[j].amt);
+      moves.push({from: debtors[i].name, to: creditors[j].name, amount: +pay.toFixed(2)});
+      debtors[i].amt = +(debtors[i].amt - pay).toFixed(2);
+      creditors[j].amt = +(creditors[j].amt - pay).toFixed(2);
+      if(debtors[i].amt<=0.0001) i++;
+      if(creditors[j].amt<=0.0001) j++;
+    }
+
+    const ul = el('settlements');
+    ul.innerHTML='';
+    if(moves.length===0){
+      const li = document.createElement('li');
+      li.className='muted';
+      li.textContent='אין צורך בהעברות — הכל מאוזן.';
+      ul.appendChild(li);
+    }else{
+      moves.forEach(m=>{
+        const li=document.createElement('li');
+        li.textContent = `${m.from} → ${m.to}: ${m.amount.toFixed(2)} ${curr}`;
+        ul.appendChild(li);
+      });
+    }
+    el('settlementsWrap').style.display='block';
+
+    // Copy summaries
+    const he = () => {
+      const lines = [];
+      lines.push('🏕️ חלוקת הוצאות');
+      lines.push(`סה״כ: ${total.toFixed(2)} ${curr} | יח׳: ${totalUnits.toFixed(2)} | מחיר ליחידה: ${costPerUnit.toFixed(2)} ${curr}`);
+      lines.push('');
+      lines.push('חלק כל משפחה:');
+      rows.forEach(r=>lines.push(`- ${r.name}: ${r.share.toFixed(2)} ${curr}`));
+      lines.push('');
+      lines.push('יתרה (חיוב-/זכות+):');
+      rows.forEach(r=>lines.push(`- ${r.name}: ${(r.net>=0?'+':'')}${r.net.toFixed(2)} ${curr}`));
+      if(moves.length){
+        lines.push('');
+        lines.push('🤝 תשלומים:');
+        moves.forEach(m=>lines.push(`- ${m.from} → ${m.to}: ${m.amount.toFixed(2)} ${curr}`));
+      }
+      return lines.join('\n');
+    };
+    const en = () => {
+      const lines = [];
+      lines.push('🏕️ Camping Expense Split');
+      lines.push(`Total: ${total.toFixed(2)} ${curr} | Units: ${totalUnits.toFixed(2)} | Cost/Unit: ${costPerUnit.toFixed(2)} ${curr}`);
+      lines.push('');
+      lines.push('Each family share:');
+      rows.forEach(r=>lines.push(`- ${r.name}: ${r.share.toFixed(2)} ${curr}`));
+      lines.push('');
+      lines.push('Net (owe-/receive+):');
+      rows.forEach(r=>lines.push(`- ${r.name}: ${(r.net>=0?'+':'')}${r.net.toFixed(2)} ${curr}`));
+      if(moves.length){
+        lines.push('');
+        lines.push('🤝 Settlements:');
+        moves.forEach(m=>lines.push(`- ${m.from} → ${m.to}: ${m.amount.toFixed(2)} ${curr}`));
+      }
+      return lines.join('\n');
+    };
+
+    el('copyHe').onclick = ()=>{navigator.clipboard.writeText(he()); el('copyHe').textContent='הועתק ✔'; setTimeout(()=>el('copyHe').textContent='📋 העתק סיכום לוואטסאפ (עברית)',1500);}
+    el('copyEn').onclick = ()=>{navigator.clipboard.writeText(en()); el('copyEn').textContent='Copied ✔'; setTimeout(()=>el('copyEn').textContent='📋 Copy summary (English)',1500);}
+  };
+</script>
+</body>
+</html>
